@@ -110,44 +110,7 @@ export AUTOGRAPH_VERBOSITY=0
 export GLOG_minloglevel=3
 export GLOG_logtostderr=0
 
-fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "v0.18.2" "/opt/frigate"
-
-FRIGATE_DIR=/opt/frigate
-cd "$FRIGATE_DIR"
-
-# 1. build_nginx.sh: vod module version + fork
-f=docker/main/build_nginx.sh
-sed -i 's|^VOD_MODULE_VERSION=.*|VOD_MODULE_VERSION="v1.9.1"|' $f
-sed -i 's|github.com/kaltura/nginx-vod-module|github.com/dio-az/nginx-vod-module|' $f
-# 1b. build_nginx.sh: embedded patch rewritten for the fork
-sed -i \
- -e 's|^\(--- a/vod/avc_hevc_parser.c\)  *[0-9].*|\1|' \
- -e 's|^\(+++ b/vod/avc_hevc_parser.c\)  *[0-9].*|\1|' \
- -e 's|^@@ -3,6 +3,9 @@$|@@ -2,6 +2,9 @@\n |' \
- -e 's|^\( *\)\(avc_hevc_parser_rbsp_trailing_bits(bit_reader_state_t\* reader)\)$|\1\2 {|' \
- -e '/avc_hevc_parser_rbsp_trailing_bits(.*) {$/{n;/^ *{$/d}' \
- -e 's|\(if (reader->stream.eof_reached)\)$|\1 {|' \
- $f
-
-# 2. nginx.conf
-f=docker/main/rootfs/usr/local/nginx/conf/nginx.conf
-sed -i '/vod_hls_container_format fmp4;/a\
-\
-            # fMP4 playlists use EXT-X-MAP, which requires HLS protocol\
-            # version 6 (RFC 8216 section 7); the module default is 4\
-            vod_hls_version 6;' $f
-sed -i '/keepalive_disable safari;/{n;/^$/d}' $f
-sed -i '/# vod module returns 502 for non-existent media/,/return 404;/d' $f
-
-# 3. GenericVideoPlayer.tsx (comments only)
-f=web/src/components/player/GenericVideoPlayer.tsx
-sed -i 's|// nginx vod module returns 502 for non existent media|// missing media is a 404; 502 still covers a failed or|; s|// https://github.com/kaltura/nginx-vod-module/issues/468|// unreachable mapping request, which is equally unplayable|' $f
-
-# sanity checks (abort install if a patch didn't apply)
-grep -q 'vod_hls_version 6;' docker/main/rootfs/usr/local/nginx/conf/nginx.conf || { echo "nginx.conf patch failed"; exit 1; }
-grep -q 'dio-az/nginx-vod-module' docker/main/build_nginx.sh || { echo "build_nginx.sh patch failed"; exit 1; }
-
-cd -
+fetch_and_deploy_gh_release "frigate" "Sh4d0w36/frigate" "tarball" "v0.19" "/opt/frigate"
 
 msg_info "Building Nginx"
 $STD bash /opt/frigate/docker/main/build_nginx.sh
