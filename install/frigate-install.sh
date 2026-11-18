@@ -112,6 +112,15 @@ export GLOG_logtostderr=0
 
 fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "v0.18.2" "/opt/frigate"
 
+cd /opt/frigate
+
+curl -L https://github.com/blakeblackshear/frigate/pull/24123.diff -o pr.diff
+
+patch -p1 --dry-run < pr.diff   # test
+patch -p1 < pr.diff             # apply
+
+cd -
+
 msg_info "Building Nginx"
 $STD bash /opt/frigate/docker/main/build_nginx.sh
 sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
